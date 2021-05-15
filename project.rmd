@@ -1,0 +1,237 @@
+---
+title: "Insurance Premium prediction"
+author: "Athulya Shanty"
+date: "19/04/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+PROBLEM STATEMENT :
+To predict the premium charges charged by the Insurance company.
+
+SOLUTION :
+Develop a model that can predict the charges with atmost accuracy.
+
+ANALYSIS :
+```{r}
+library(readxl)
+df<- read.csv("E:/files/Desktop/2MDS/MSD271- PROGRAMMING FOR DATA SCIENCE IN R/insurance.csv")
+```
+
+
+
+```{r}
+dim(df)
+```
+```{r}
+str(df)
+```
+
+```{r}
+colnames(df)
+```
+```{r}
+colSums(is.na(df))
+```
+
+```{r}
+is.null(df)
+```
+There are no null values and empty values.NULL is an absence of a value. An empty string is a value, but is just empty.
+
+```{r}
+apply(df,2,function(x) length(unique(x)))
+```
+There are 4 numerical and 3 categorical variables. The numerical variables are age,bmi,children and charges. The categorical variables are sex,smoker,region.
+
+```{r}
+df$sex=as.factor(df$sex)
+df$smoker=as.factor(df$smoker)
+df$region=as.factor(df$region)
+```
+
+```{r}
+str(df)
+```
+```{r}
+summary(df)
+```
+```{r}
+#Histogram of numerical variables
+hist(df$age,col = "#8EC187",xlab='age',xlim=c(0,100),ylim=c(0,200))
+
+hist(df$bmi,col = "#8EC187",xlab='bmi',xlim=c(0,100))
+
+hist(df$children,col =  "#8EC187",xlab='children',xlim=c(0,6))
+
+hist(df$charges,col = "#8EC187",xlab='charges',xlim=c(0,80000),ylim=c(0,400))
+```
+```{r}
+plot(x = df$age, y = df$charges,
+xlab = 'age',
+ylab = 'charges',
+main = 'plot of age vs charges',
+pch=20
+)
+
+plot(x = df$bmi, y = df$charges,
+xlab = 'bmi',
+ylab='chargeas',
+main = 'plot of bmi vs charges',
+pch=20
+)
+plot(x = df$children, y = df$charges,
+xlab = 'children',
+ylab='charges',
+main = 'plot of children vs charges',
+pch=20
+)
+```
+
+```{r}
+boxplot(df$age,main="Boxplot of age",xlab="age",col = "#8EC187",border = "#465644")
+```
+```{r}
+boxplot(df$"bmi",main="Boxplot of bmi",xlab="bmi",col = "#8EC187",border = "#465644")
+boxplot(df$children,main="Boxplot of children",xlab="children",col = "#8EC187",border = "#465644")
+```
+The boxplot shows that there are outliers. But, the outliers would be persons with BMI over 45. I won't delete those outlier rows because, when I make a  model, the medical costs might be undervalued for persons who are obese.
+```{r}
+boxplot(df$"charges",main="Boxplot of charges",xlab="charges",col = "#8EC187",border = "#465644")
+```
+The outliers indicate that there are patients who have a high medical charges expense.I think removing them is not a good idea.
+
+```{r}
+#density plot
+plot(density(df$age),main="Density plot : age",ylab="Frequency",sub=paste("Skewness:",round(e1071::skewness(df$age),2)))
+polygon(density(df$age), col="#ABE0A4",border="#527A4D")
+
+plot(density(df$bmi),main="Density plot : bmi",ylab="Frequency",sub=paste("Skewness:",round(e1071::skewness(df$bmi),2)))
+polygon(density(df$bmi), col="#ABE0A4",border="#527A4D")
+
+plot(density(df$children),main="Density plot : children",ylab="Frequency",sub=paste("Skewness:",round(e1071::skewness(df$children),2)))
+polygon(density(df$children), col="#ABE0A4",border="#527A4D")
+
+plot(density(df$charges),main="Density plot : charges",ylab="Frequency",sub=paste("Skewness:",round(e1071::skewness(df$charges),2)))
+polygon(density(df$charges), col="#ABE0A4",border="#527A4D")
+```
+```{r}
+library(corrplot)
+library(caret)
+df$sex=as.numeric(df$sex)
+df$smoker=as.numeric(df$smoker)
+df$region=as.numeric(df$region)
+corrplot(cor(df),method = 'number')
+```
+The charges have high positive correlation with smoker.
+The charges have about 0.3 and 0.2 correlation with age and bmi respectively.
+The bmi and age have about 0.1 correlation
+
+```{r}
+#The train set contains 70 percent of the data while the test set contains the remaining 30 percent.
+index<-sample(1:nrow(df), 0.7*nrow(df)) 
+train<-df[index,] # Create the training data 
+test = df[-index,] # Create the test data
+
+dim(train)
+
+dim(test)
+```
+
+```{r message=FALSE}
+set.seed(100) 
+library(randomForest)
+fit_rf = randomForest(charges~., data=train)
+impvar=importance(fit_rf)
+impvar
+```
+By performing random forest for feature selection, we can conclude that smoker is the most important variable for the model.age and bmi are important than the remaining variables. Let's take the most important 3 variable 
+
+```{r}
+df<-df[,-c(2,4,6)]
+df
+```
+```{r}
+#The train set contains 70 percent of the data while the test set contains the remaining 30 percent.
+index<-sample(1:nrow(df), 0.7*nrow(df)) 
+train<-df[index,] # Create the training data 
+test = df[-index,] # Create the test data
+
+dim(train)
+dim(test)
+Ytrain=train$charges
+Xtrain=subset(train,select = -c(charges))
+```
+
+
+
+
+```{r}
+model1 = lm(Ytrain~., data=Xtrain)
+summary(model1)
+```
+
+
+The model is charges=-35181.13+ 255.34(age)-230.01(sex)+349.34(bmi)+418.66(children)+23299.95(smoker)-443.28(region).
+
+R_square(Coefficient of determination) - measures the proportion of variance in the dependent variable that can be explained by the indepedent variables.In our case,there is 0.7556 or 75.56% of variability of the dependent variable explained by the independent variable.Adjusted R-square corrects the positive bias created by the sample, its value is 0.754 about 75.4%.
+
+F-ratio in the ANOVA table tests whether the overall regression model is a good fit for the data.We have 478.7.The p value is less than 0.05 which indicates that the model is good.
+
+We can conclude that all the independent variables statistically significant since every p for each independant variable is < 0.05.
+```{r}
+Ytest=test$charges
+Xtest=subset(test,select=-c(charges))
+
+```
+
+```{r}
+#Checking the confidence interval of the model coefficient
+confint(model1)
+```
+```{r}
+pred=predict(model1, data.frame(Xtest))
+```
+
+```{r}
+#Assumption Analysis
+par(mfrow=c(2,2))
+plot(model1)
+```
+1.Residuals vs fitted graph is used to check the linear relationship assumptions. There are no distinct pattern, therefore, this is an indication for linear relationship 
+
+2. Normal Q-Q -> used to determine whether the residuals are  normally distributed.We can see that the residuals points dont folow straight line. Therefore, the residuals are not normally distributed
+
+3. Scale-location(or spread-location) is homogeneity of variance(homoscedasticity) determination
+
+4. Residuals vs Leverage is for identifying influential points, which are points that might impact regression results when included or excluded from the analysis
+
+
+Even though sex was removed from the model, the AIC value didnt made much change.
+
+```{r}
+X<-df[,(1:3)]
+library(GGally)
+ggpairs(X)
+```
+There is no multi-collinearity between the independent variables from the plotted graph.
+
+There are two functions viz. ‘omcdiag’ and ‘imcdiag’ under ‘mctest’ package in R which will provide the overall and individual diagnostic checking for multicollinearity respectively.
+```{r}
+#Farrar -Glauber Test
+library(mctest)
+Y=df[,4]
+imcdiag(model1)
+```
+There is no multi-collinearity between the independent variables from Farrar - Glauber test.
+
+RESULT : 
+The multicolinearity tests shows that there is no multi-collinearity in the data.Also the assumptions of linear regression are satisfied. The R square value shows that the model is accurate enough.All the variables significantly contribute to the model. Hence by linear regression model, the predictions are listed below.
+
+```{r}
+data.frame(predictions=pred,Observed=Ytest)
+```
+CONCLUSION :
+The dataset has been analyzed and a linear regression model was modelled to predict the premium charges.
